@@ -1,4 +1,5 @@
 #' loan
+#'
 #' SCU loan and loan transaction data (from 2021 to 2022)
 #'
 #' Contains information of loan and transactions.
@@ -32,12 +33,11 @@
 #' \item{BALANCE_11}{The current principal balance of the loan in month_11}
 #' \item{BALANCE_12}{The current principal balance of the loan in month_12}
 #' }
-#' @examples
-#' loan
 "loan"
 
 
 #' transaction
+#'
 #' 2. transaction data
 #' @format transaction: A data frame with 12928132 rows and 9 columns.
 #' \describe{
@@ -53,6 +53,4 @@
 #' }
 #' @source Created by Trieu Tran
 #'
-#' @example
-#' transaction
 "transaction"

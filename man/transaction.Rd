@@ -3,12 +3,9 @@
 \docType{data}
 \name{transaction}
 \alias{transaction}
-\title{\enumerate{
-\item transaction data
-}}
+\title{transaction}
 \format{
-\subsection{\code{transaction}: A data frame with 12928132 rows and 9 columns.}{
-
+transaction: A data frame with 12928132 rows and 9 columns.
 \describe{
 \item{PARENTACOUNT}{The account affected by the transaction.}
 \item{PARENTID}{The two or four-character ID of the Share record (if the ID Type is 0) or Loan record (if the ID Type is 1) affected by the transaction.}
@@ -19,7 +16,6 @@
 \item{LATECHGWAIVEDAMT}{This field stores the amount that the Loan record Late Charge Unpaid field has changed during a single loan payment transaction submitted through teller transactions, batch posting, or an online transaction. If the amount decreases, the transaction history shows this as a negative amount; and if the amount increases, the transaction history shows this as a positive amount. If there is no related late charge activity to document, the Late Charge Unpaid Chg Amt displays 0.00, the default value.}
 \item{POSTDATE}{Episys updates this field with the current system date when you okay the transaction. }
 \item{INTEREST}{Episys updates this field with the amount of the transaction the teller designates as interest (if the transaction affects a Loan record) or penalty (if the transaction affects a Share record).}
-}
 }
 }
 \source{

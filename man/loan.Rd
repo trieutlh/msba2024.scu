@@ -3,10 +3,9 @@
 \docType{data}
 \name{loan}
 \alias{loan}
-\title{SCU loan and loan transaction data (from 2021 to 2022)}
+\title{loan}
 \format{
-\subsection{\code{loan}: A data frame with 185777 rows and 25 columns.}{
-
+loan: A data frame with 185777 rows and 25 columns.
 \describe{
 \item{PARENTACCOUNT}{Member account number.}
 \item{ID}{Identifying the Loan record.}
@@ -35,14 +34,14 @@
 \item{BALANCE_12}{The current principal balance of the loan in month_12}
 }
 }
-}
 \usage{
 loan
 }
 \description{
-Contains information of loan and transactions.
+SCU loan and loan transaction data (from 2021 to 2022)
 }
 \details{
+Contains information of loan and transactions.
 \enumerate{
 \item loan data
 }
