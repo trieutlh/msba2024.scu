@@ -1,9 +1,10 @@
+#' loan
 #' SCU loan and loan transaction data (from 2021 to 2022)
 #'
 #' Contains information of loan and transactions.
 #'
 #' 1. loan data
-#' @format ## `loan`: A data frame with 185777 rows and 25 columns.
+#' @format loan: A data frame with 185777 rows and 25 columns.
 #' \describe{
 #' \item{PARENTACCOUNT}{Member account number.}
 #' \item{ID}{Identifying the Loan record.}
@@ -33,9 +34,10 @@
 #' }
 "loan"
 
-#'
+
+#' transaction
 #' 2. transaction data
-#' @format ## `transaction`: A data frame with 12928132 rows and 9 columns.
+#' @format transaction: A data frame with 12928132 rows and 9 columns.
 #' \describe{
 #' \item{PARENTACOUNT}{The account affected by the transaction.}
 #' \item{PARENTID}{The two or four-character ID of the Share record (if the ID Type is 0) or Loan record (if the ID Type is 1) affected by the transaction.}
