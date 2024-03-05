@@ -32,6 +32,8 @@
 #' \item{BALANCE_11}{The current principal balance of the loan in month_11}
 #' \item{BALANCE_12}{The current principal balance of the loan in month_12}
 #' }
+#' @examples
+#' loan
 "loan"
 
 
@@ -51,4 +53,6 @@
 #' }
 #' @source Created by Trieu Tran
 #'
+#' @example
+#' transaction
 "transaction"
