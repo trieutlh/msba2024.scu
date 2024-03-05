@@ -7,7 +7,7 @@
 \format{
 \subsection{\code{loan}: A data frame with 185777 rows and 25 columns.}{
 
-#' \describe{
+\describe{
 \item{PARENTACCOUNT}{Member account number.}
 \item{ID}{Identifying the Loan record.}
 \item{LOANCODE}{The loan code defines certain characteristics of the loan and determines how Episys processes the loan.}

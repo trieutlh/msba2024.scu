@@ -4,7 +4,7 @@
 #'
 #' 1. loan data
 #' @format ## `loan`: A data frame with 185777 rows and 25 columns.
-#' #' \describe{
+#' \describe{
 #' \item{PARENTACCOUNT}{Member account number.}
 #' \item{ID}{Identifying the Loan record.}
 #' \item{LOANCODE}{The loan code defines certain characteristics of the loan and determines how Episys processes the loan.}
@@ -32,7 +32,7 @@
 #' \item{BALANCE_12}{The current principal balance of the loan in month_12}
 #' }
 "loan"
-#' @usage data(loan)
+
 #'
 #' 2. transaction data
 #' @format ## `transaction`: A data frame with 12928132 rows and 9 columns.
@@ -50,4 +50,3 @@
 #' @source Created by Trieu Tran
 #'
 "transaction"
-#' @usage data(transaction)
