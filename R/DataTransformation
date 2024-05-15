@@ -1,0 +1,297 @@
+---
+title: "MSBA Applied Project"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Data Merging
+## We received 12 CSV files from SCU's BI team, each containing data for three datasets: Account, Loan, and Loan Transaction, with one file per quarter. Consequently, we consolidated the quarterly data into yearly datasets.
+
+# 2. Feature Selection for Data Discovery
+## We consulted with SCU experts to determine which features are likely to have a significant impact on delinquency. This process aided in narrowing down the scope of the data.
+
+## 3. Using Tableau for Exploratory Data Analysis (EDA)
+We utilized Tableau to visualize and gain a better understanding of the current delinquency situation. 
+
+## 4. ETL Process
+We extracted, transform and loaded the data into Azure Data Studio.
+
+## 5. Exploring the Data with Azure Data Studio
+Given the substantial volume of data received, we employed SQL queries in Azure Data Studio for further exploratory analysis.
+
+## 6. Transforming Loan dataset, create DQ column
+### We created DQ column by combining all features that contributed to delinquency, as showed in the code chunk below:
+
+``` {r}
+#install packages and load data
+install.packages("readr")
+library(readr)
+loan <- readr::read_delim("C:/Users/Trieu/OneDrive - UW/SCU Project/Merged data/Loan_merged.csv", delim=',')
+Loan_final <- loan
+#create DQ from features that contributed to delinquency
+Loan_final$DQ <- with(Loan_final,
+                      ifelse(!is.na(Loan_final$DQNOTICEDATE)
+                             | Loan_final$DQNOTICENUMBER > 0
+                             
+                             | Loan_final$PAYMENTHISTORY2 > 0
+                             | Loan_final$PAYMENTHISTORY3 > 0
+                             | Loan_final$PAYMENTHISTORY4 > 0
+                             | Loan_final$PAYMENTHISTORY5 > 0
+                             | Loan_final$PAYMENTHISTORY6 > 0
+                             
+                             | Loan_final$LATECHARGELASTYEAR > 0
+                             | Loan_final$LATECHARGEUNPAID > 0
+                             | Loan_final$LATECHARGEYTD > 0
+                             
+                             | Loan_final$CHARGEOFFAMOUNT > 0
+                             | !is.na(Loan_final$CHARGEOFFDATE )
+                             , 1
+                             , 0
+                      )
+)
+
+#get needed columns from the dataset
+Loan_final <- Loan_final[,c("BALANCE",
+              "CREDITSCORE",
+              "LOANCODE",
+              "ORIGINALBALANCE",
+              "ORIGINALRATE",
+              "TYPE",
+              "INTERESTRATE",
+              "BRANCH",
+              "PURPOSECODE",
+              "PARENTACCOUNT",
+              "APPROVALDATE",
+              "DUEDATE",
+              "PAYMENT",
+              "ID",
+              "DQ"
+)]
+table(Loan_final$DQ)
+which(is.na(Loan_final)
+      
+#check NA in APPROVALDATE, transform NA to Null
+which(is.na(Loan_final))
+Loan_final[] <- replace(as.matrix(Loan_final), is.na(Loan_final), "")
+
+#export csv file
+write.csv(Loan_final, file = "/Users/trieutlh/Desktop/LoanTranspose.csv")
+```
+
+### In the process of data discovery using SQL queries, we discovered that the Loan dataset has information of 186,009 loans. 
+### DUEDATE was omitted as it solely presents due dates for each loan in each month without any relationship to other loans or contribution to delinquency.
+### BALANCE feature was extracted and transposed to consolidate all balance information for each month over the 12-month period into a single entry.
+``` {r}
+#install packages and load data
+library(dplyr)
+library(stringr)
+library(splitstackshape)
+
+loan <- readr::read_delim("/Users/trieutlh/Library/CloudStorage/OneDrive-UW/SCU Project/Cleaned data/newDQ/archive/Loan_withID_andDQ.csv", delim=',')
+#remove the auto-created column(s). Could be 1 or 2 first columns 
+loan <- loan[ -c(1) ] # only remove the auto-created column(s).
+
+#sort data on PARENTAACOUNT, ID, and BALANCE
+loan <- loan[order(loan$PARENTACCOUNT, loan$ID, loan$BALANCE), ]
+
+df <-loan %>%
+  group_by(PARENTACCOUNT, ID) %>%
+  summarise(
+    across(
+      c(
+        LOANCODE,
+        CREDITSCORE,
+        ORIGINALBALANCE,
+        ORIGINALRATE,
+        TYPE,
+        INTERESTRATE,
+        BRANCH,
+        PURPOSECODE,
+        APPROVALDATE,
+        PAYMENT,
+        DQ
+      ),
+      max 
+    ),
+    BALANCE=paste(BALANCE, collapse=","),
+  )
+
+
+df <- concat.split(df, "BALANCE", ",")
+
+#omit the original BALANCE column
+df <- df[ ,-c(14) ]
+write.csv(df, '/Users/trieutlh/Library/CloudStorage/OneDrive-UW/SCU Project/Cleaned data/newDQ/Loan_withID_andDQ.csv')
+```
+
+### While doing further data discovery using SQL, we found some entries with zero ORIGINALRATE and INTERESTRATE even when the loans are not charged off i.e. TYPE is not 99. 
+### Also, we came across some entries with very high INTERESTRATE (more than 50%).
+```{r}
+Loan <- read_csv("/Users/akankshagarg/OneDrive - UW/SCU Project/Cleaned data/LoanTranspose.csv")
+View(Loan)
+dim(Loan)
+
+# Exclusing 1 and 2 cols
+Loan <- Loan[, -c(1, 2)]
+
+# remove 229 rows with interestreate 0 and type not 99
+Loan <- Loan[!(Loan$INTERESTRATE == 0 & Loan$TYPE != 99), ]
+
+# Replace originalrate with interestrate where originalrate is 0 and type is not equal to 99
+Loan$ORIGINALRATE <- ifelse(Loan$ORIGINALRATE == 0 & Loan$TYPE != 99,
+                                Loan$INTERESTRATE,
+                                Loan$ORIGINALRATE)
+
+# Dividing InterestRate and OriginalRate by 1000
+Loan$INTERESTRATE <- Loan$INTERESTRATE / 1000
+Loan$ORIGINALRATE <- Loan$ORIGINALRATE / 1000
+
+# Removing entries where Interestrate is more than 50
+Loan <- Loan[Loan$INTERESTRATE <= 50, ]
+
+# Converting DQ to char type
+Loan$DQ <- as.character(Loan$DQ)
+
+# replace NA with empty values
+Loan$BALANCE_02[is.na(Loan$BALANCE_02)] <- ""
+Loan$BALANCE_03[is.na(Loan$BALANCE_03)] <- ""
+Loan$BALANCE_04[is.na(Loan$BALANCE_04)] <- ""
+Loan$BALANCE_05[is.na(Loan$BALANCE_05)] <- ""
+Loan$BALANCE_06[is.na(Loan$BALANCE_06)] <- ""
+Loan$BALANCE_07[is.na(Loan$BALANCE_07)] <- ""
+Loan$BALANCE_08[is.na(Loan$BALANCE_08)] <- ""
+Loan$BALANCE_09[is.na(Loan$BALANCE_09)] <- ""
+Loan$BALANCE_10[is.na(Loan$BALANCE_10)] <- ""
+Loan$BALANCE_11[is.na(Loan$BALANCE_11)] <- ""
+Loan$BALANCE_12[is.na(Loan$BALANCE_12)] <- ""
+View(Loan)
+write_csv(Loan, '/Users/akankshagarg/OneDrive - UW/SCU Project/Cleaned data/Final data/Loan_v1.csv')
+```
+
+### After further data discovery, we came across entries where CREDITSCORE is 0 even when the loan is not charged off. Here is the code to fix those:
+```{r}
+library(dplyr)
+Loan <- read_csv("/Users/akankshagarg/OneDrive - UW/SCU Project/Cleaned data/Final data/Loan_v1.csv")
+
+# replace 0 credit score with mentioned one
+Loan <- Loan %>%
+  group_by(PARENTACCOUNT) %>%
+  mutate(CREDITSCORE = ifelse(CREDITSCORE == 0 & sum(CREDITSCORE) != 0, max(CREDITSCORE), CREDITSCORE)) %>%
+  ungroup()
+
+# replace entries having 0 credit score with ""
+Loan <- Loan %>%
+  mutate(CREDITSCORE = ifelse(CREDITSCORE == 0 & BALANCE_12 != 0, "", CREDITSCORE))
+View(Loan)
+write_csv(Loan, '/Users/akankshagarg/OneDrive - UW/SCU Project/Cleaned data/Final data/Loan_v2.csv')
+```
+
+## 7. Transforming Transaction dataset
+### Subsetting the data to extract only the features relevant for analysis from the original Transaction dataset.
+```{r}
+transaction <- readr::read_delim("/Users/trieutlh/Library/CloudStorage/OneDrive-UW/SCU Project/Merged data/LoanTransaction_merged.csv",
+                                 delim = '|')
+
+head(transaction)
+
+df <- transaction[,c("PARENTACCOUNT",
+                     "PARENTID",
+                     "EFFECTIVEDATE",
+                     "ACTIONCODE",
+                     "BALANCECHANGE",
+                     "NEWBALANCE",
+                     "LATECHGWAIVEDAMT",
+                     "POSTDATE",
+                     "INTEREST"
+)]
+
+
+write_csv(df, "/Users/trieutlh/Desktop/scu/transaction.csv")
+
+df <- read_csv("/Users/trieutlh/Desktop/scu/transaction.csv")
+head(df)
+
+df$EFFECTIVEDATE <- as.Date(df$EFFECTIVEDATE)
+df$POSTDATE <- as.Date(df$POSTDATE)
+
+summary(df)
+str(df)
+```
+
+### Aggregate the transaction data by counting the number of transactions per month for each loan ID
+```{r}
+install.packages("readr")
+library(readr)
+library(magrittr)
+library(dplyr)
+library(tidyr)
+
+loantran <- read_csv("/Users/akankshagarg/OneDrive - UW/SCU Project/Cleaned data/Final data/Transaction_v1.csv")
+View(loantran)
+dim(loantran)
+tran <- loantran
+
+# Extract month from POSTDATE
+tran$POSTDATE <- as.Date(tran$POSTDATE) 
+tran$Month <- format(tran$POSTDATE, "%m")
+View(tran)
+
+# Counting entries for each month
+tran_1 <- tran %>%
+  group_by(PARENTACCOUNT, PARENTID, Month) %>%
+  summarise(Count = n()) %>%
+  ungroup()
+
+# Reshape the data to wide format
+loantran_distinct <- loantran %>%
+  distinct(PARENTACCOUNT, PARENTID, .keep_all = TRUE)
+
+# Reshape the data to wide format
+tran_2 <- tran_1 %>%
+  pivot_wider(names_from = Month, 
+              values_from = Count,
+              values_fill = 0,
+              names_prefix = "Month_",  # prefix for count columns
+              names_sort = TRUE) %>%
+  left_join(loantran_distinct, by = c("PARENTACCOUNT", "PARENTID"))
+
+View(tran_2)
+
+write_csv(Tran_2, "loantran.csv")
+```
+
+### Aggregate the transaction data by counting the number of transactions based on action codes for each loan ID.
+First, we export a file from Azure Data Studio named "actioncode_ori.csv" that contains PARENTACCOUNT, PARENTID, ACTIONCODE, COUNT(ACTIONCODE) as count_action. 
+``` {sql}
+SELECT PARENTACCOUNT, PARENTID, ACTIONCODE, COUNT(ACTIONCODE) as count_action
+FROM [Transaction]
+GROUP BY PARENTACCOUNT, PARENTID, ACTIONCODE
+ORDER BY PARENTACCOUNT, PARENTID, ACTIONCODE
+```
+
+Next, we aggregated the csv file, counting the number of transactions based on action codes for each loan ID.
+``` {r}
+df <- read_csv("/Users/trieutlh/Desktop/scu/apr15/actioncode_ori.csv")
+df_modified <- pivot_wider(df, names_from = ACTIONCODE, values_from = count_action, values_fill = 0, names_sort = TRUE)
+
+write_csv(df_modified, "/Users/trieutlh/Desktop/scu/apr15/TransactionActioncode_apr15.csv")
+```
+
+### Once data transformation is complete, we package it into an R package for the project. This facilitates easier access and maintenance of the dataset for future use.
+```{r}
+# load the data from R package
+if (!require(msba2024.scu)) {
+  library(devtools)
+  install_github("trieutlh/msba2024.scu", force=TRUE)
+}
+loan <- msba2024.scu::loan
+transaction <- msba2024.scu::transaction
+```
